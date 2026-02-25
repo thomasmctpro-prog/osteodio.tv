@@ -113,7 +113,7 @@ export default function App() {
 
             if (response.ok) {
               const newPodcast = await response.json();
-              const track: Track = { ...newPodcast, audioUrl: `/api/podcasts/${newPodcast.id}/audio` };
+              const track: Track = { ...newPodcast, audioUrl: `/api/podcasts/${newPodcast.id}/audio`, category: newPodcast.category || "bonus" as const };
               setPodcasts([track, ...podcasts]);
               setCurrentTrack(track);
               setIsPlaying(true);
@@ -132,7 +132,8 @@ export default function App() {
             duration: payload.duration,
             episode: payload.episode,
             image: payload.image,
-            audioUrl: base64Data 
+            audioUrl: base64Data,
+            category: "bonus"
           };
           
           const savedPodcasts = localStorage.getItem('osteodio_podcasts');
@@ -220,7 +221,27 @@ export default function App() {
         currentTrack={currentTrack}
         isPlaying={isPlaying}
         onPlayPause={() => setIsPlaying(!isPlaying)}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => {
+          // Auto-play next track
+          if (currentTrack) {
+            const currentIndex = podcasts.findIndex(p => p.id === currentTrack.id);
+            if (currentIndex < podcasts.length - 1) {
+              setCurrentTrack(podcasts[currentIndex + 1]);
+              setIsPlaying(true);
+            } else {
+              setIsPlaying(false);
+            }
+          }
+        }}
+        podcasts={podcasts}
+        onTrackChange={(track) => {
+          setCurrentTrack(track);
+          setIsPlaying(true);
+        }}
+        isFavorite={currentTrack ? favorites.has(currentTrack.id) : false}
+        onToggleFavorite={() => {
+          if (currentTrack) toggleFavorite(currentTrack.id);
+        }}
       />
 
       <AnimatePresence>
