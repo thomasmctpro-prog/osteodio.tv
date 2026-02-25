@@ -64,25 +64,24 @@ export default function App() {
           }));
           if (mappedData.length > 0) {
             setPodcasts(mappedData);
+            setIsLoading(false);
             return;
           }
         }
       } catch (error) {
         console.error("Server fetch failed, falling back to local mode:", error);
-      } finally {
-        setIsLoading(false);
       }
       
-      const savedPodcasts = localStorage.getItem('osteodio_podcasts');
-      if (savedPodcasts) {
-        setPodcasts(JSON.parse(savedPodcasts));
-      } else {
-        setPodcasts(INITIAL_PODCASTS);
-      }
+      // Always start with INITIAL_PODCASTS and merge any user-uploaded ones
+      const savedUploads = localStorage.getItem('osteodio_uploads');
+      const userUploads: Track[] = savedUploads ? JSON.parse(savedUploads) : [];
+      setPodcasts([...userUploads, ...INITIAL_PODCASTS]);
+      
       const savedFavorites = localStorage.getItem('osteodio_favorites');
       if (savedFavorites) {
         setFavorites(new Set(JSON.parse(savedFavorites)));
       }
+      setIsLoading(false);
     };
     fetchPodcasts();
   }, []);
@@ -136,12 +135,14 @@ export default function App() {
             category: "bonus"
           };
           
-          const savedPodcasts = localStorage.getItem('osteodio_podcasts');
-          const existingPodcasts = savedPodcasts ? JSON.parse(savedPodcasts) : [];
-          const updatedPodcasts = [track, ...existingPodcasts];
-          localStorage.setItem('osteodio_podcasts', JSON.stringify(updatedPodcasts));
+          // Save only user uploads separately (never overwrite built-in podcasts)
+          const savedUploads = localStorage.getItem('osteodio_uploads');
+          const existingUploads: Track[] = savedUploads ? JSON.parse(savedUploads) : [];
+          const updatedUploads = [track, ...existingUploads];
+          localStorage.setItem('osteodio_uploads', JSON.stringify(updatedUploads));
           
-          setPodcasts(updatedPodcasts);
+          // Merge uploads with all current podcasts
+          setPodcasts(prev => [track, ...prev]);
           setCurrentTrack(track);
           setIsPlaying(true);
         };

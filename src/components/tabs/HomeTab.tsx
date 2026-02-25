@@ -25,6 +25,7 @@ export function HomeTab({
   onUploadClick 
 }: HomeTabProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [showAll, setShowAll] = useState(false);
 
   const filteredPodcasts = useMemo(() => {
     if (activeCategory === "all") return podcasts;
@@ -57,7 +58,10 @@ export function HomeTab({
       {/* Podcasts Section */}
       <section className="mt-4">
         <div className="flex items-center justify-between px-6 mb-4">
-          <h3 className="text-xl font-bold tracking-tight">Podcasts récents</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold tracking-tight">Podcasts récents</h3>
+            <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-bold">{filteredPodcasts.length}</span>
+          </div>
           <div className="flex items-center gap-4">
             <button 
               onClick={onUploadClick}
@@ -66,60 +70,110 @@ export function HomeTab({
               <Plus className="size-4" />
               Importer
             </button>
-            <button className="text-sm font-semibold text-zinc-400">Tout afficher</button>
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className={`text-sm font-semibold transition-colors ${showAll ? 'text-primary' : 'text-zinc-400 hover:text-white'}`}
+            >
+              {showAll ? "Réduire" : "Tout afficher"}
+            </button>
           </div>
         </div>
         
-        <ScrollArea className="w-full px-6 pb-4">
-          <div className="flex w-max space-x-4">
-            <AnimatePresence mode="popLayout">
-              {filteredPodcasts.map((podcast) => (
-                <motion.div 
-                  key={podcast.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.02 }}
-                  className="flex flex-col gap-3 w-40 group cursor-pointer relative"
-                >
-                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-lg bg-zinc-900 border border-white/5">
-                    <img 
-                      alt={podcast.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                      src={podcast.image}
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center" onClick={() => onTogglePlay(podcast)}>
-                      {(currentTrack?.id === podcast.id && isPlaying) ? (
-                        <Pause className="size-12 text-primary fill-current" />
-                      ) : (
-                        <Play className="size-12 text-white fill-current opacity-0 group-hover:opacity-100 transition-opacity" />
+        {!showAll ? (
+          /* Horizontal scroll view (default) */
+          <ScrollArea className="w-full px-6 pb-4">
+            <div className="flex w-max space-x-4">
+              <AnimatePresence mode="popLayout">
+                {filteredPodcasts.map((podcast) => (
+                  <motion.div 
+                    key={podcast.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex flex-col gap-3 w-40 group cursor-pointer relative"
+                  >
+                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-lg bg-zinc-900 border border-white/5">
+                      <img 
+                        alt={podcast.title} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                        src={podcast.image}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center" onClick={() => onTogglePlay(podcast)}>
+                        {(currentTrack?.id === podcast.id && isPlaying) ? (
+                          <Pause className="size-12 text-primary fill-current" />
+                        ) : (
+                          <Play className="size-12 text-white fill-current opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onToggleFavorite(podcast.id); }}
+                        className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-md transition-all ${favorites.has(podcast.id) ? 'bg-primary text-black' : 'bg-black/40 text-white opacity-0 group-hover:opacity-100'}`}
+                      >
+                        <Heart className={`size-4 ${favorites.has(podcast.id) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
+                    <div onClick={() => onTogglePlay(podcast)}>
+                      <p className={`font-bold text-sm truncate ${currentTrack?.id === podcast.id ? 'text-primary' : 'text-white'}`}>
+                        {podcast.title}
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">{podcast.duration} • {podcast.episode}</p>
+                      {podcast.category === "bonus" && (
+                        <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                          Bonus
+                        </span>
                       )}
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onToggleFavorite(podcast.id); }}
-                      className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-md transition-all ${favorites.has(podcast.id) ? 'bg-primary text-black' : 'bg-black/40 text-white opacity-0 group-hover:opacity-100'}`}
-                    >
-                      <Heart className={`size-4 ${favorites.has(podcast.id) ? 'fill-current' : ''}`} />
-                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            <ScrollBar orientation="horizontal" className="hidden" />
+          </ScrollArea>
+        ) : (
+          /* Full grid view (show all) */
+          <div className="px-6 pb-4 space-y-3">
+            <AnimatePresence mode="popLayout">
+              {filteredPodcasts.map((podcast) => (
+                <motion.div
+                  key={podcast.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-4 p-3 rounded-xl bg-zinc-900/50 border border-white/5 hover:bg-zinc-800/80 transition-colors cursor-pointer group"
+                  onClick={() => onTogglePlay(podcast)}
+                >
+                  <div className="relative size-16 rounded-xl overflow-hidden shrink-0">
+                    <img src={podcast.image} alt={podcast.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      {(currentTrack?.id === podcast.id && isPlaying) ? (
+                        <Pause className="size-6 text-primary fill-current" />
+                      ) : (
+                        <Play className="size-6 text-white fill-current opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
                   </div>
-                  <div onClick={() => onTogglePlay(podcast)}>
+                  <div className="flex-1 min-w-0">
                     <p className={`font-bold text-sm truncate ${currentTrack?.id === podcast.id ? 'text-primary' : 'text-white'}`}>
                       {podcast.title}
                     </p>
-                    <p className="text-xs text-zinc-400 mt-1">{podcast.duration} • {podcast.episode}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{podcast.duration} • {podcast.episode}</p>
                     {podcast.category === "bonus" && (
-                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
-                        Bonus
-                      </span>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">Bonus</span>
                     )}
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onToggleFavorite(podcast.id); }}
+                    className={`p-2 rounded-full transition-all ${favorites.has(podcast.id) ? 'text-primary' : 'text-zinc-500 hover:text-white'}`}
+                  >
+                    <Heart className={`size-5 ${favorites.has(podcast.id) ? 'fill-current' : ''}`} />
+                  </button>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
-          <ScrollBar orientation="horizontal" className="hidden" />
-        </ScrollArea>
+        )}
       </section>
 
       {/* Videos Section */}
