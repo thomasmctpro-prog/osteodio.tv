@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Play, Pause, Heart, ArrowRight } from "lucide-react";
-import { Track, VIDEOS, LEARNING_PATHS } from "@/data/mockData";
+import { Track, CATEGORIES, VIDEOS, LEARNING_PATHS } from "@/data/mockData";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
@@ -24,15 +24,32 @@ export function HomeTab({
   onTogglePlay, 
   onUploadClick 
 }: HomeTabProps) {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const filteredPodcasts = useMemo(() => {
+    if (activeCategory === "all") return podcasts;
+    return podcasts.filter(p => p.category === activeCategory);
+  }, [podcasts, activeCategory]);
+
   return (
     <>
-      {/* Filters */}
+      {/* Category Filters */}
       <ScrollArea className="w-full whitespace-nowrap px-6 py-4">
         <div className="flex w-max space-x-3">
-          <Button variant="default" className="rounded-full px-6 font-bold h-10">Tout</Button>
-          <Button variant="outline" className="rounded-full px-6 font-medium h-10 bg-zinc-800 border-white/5 text-white hover:bg-zinc-700 hover:text-white">Anatomie</Button>
-          <Button variant="outline" className="rounded-full px-6 font-medium h-10 bg-zinc-800 border-white/5 text-white hover:bg-zinc-700 hover:text-white">Techniques</Button>
-          <Button variant="outline" className="rounded-full px-6 font-medium h-10 bg-zinc-800 border-white/5 text-white hover:bg-zinc-700 hover:text-white">Études de cas</Button>
+          {CATEGORIES.map((cat) => (
+            <Button
+              key={cat.id}
+              variant={activeCategory === cat.id ? "default" : "outline"}
+              className={`rounded-full px-6 font-bold h-10 transition-all ${
+                activeCategory === cat.id
+                  ? ""
+                  : "bg-zinc-800 border-white/5 text-white hover:bg-zinc-700 hover:text-white"
+              }`}
+              onClick={() => setActiveCategory(cat.id)}
+            >
+              {cat.label}
+            </Button>
+          ))}
         </div>
         <ScrollBar orientation="horizontal" className="hidden" />
       </ScrollArea>
@@ -56,7 +73,7 @@ export function HomeTab({
         <ScrollArea className="w-full px-6 pb-4">
           <div className="flex w-max space-x-4">
             <AnimatePresence mode="popLayout">
-              {podcasts.map((podcast) => (
+              {filteredPodcasts.map((podcast) => (
                 <motion.div 
                   key={podcast.id}
                   layout
@@ -91,6 +108,11 @@ export function HomeTab({
                       {podcast.title}
                     </p>
                     <p className="text-xs text-zinc-400 mt-1">{podcast.duration} • {podcast.episode}</p>
+                    {podcast.category === "bonus" && (
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                        Bonus
+                      </span>
+                    )}
                   </div>
                 </motion.div>
               ))}
